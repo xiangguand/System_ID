@@ -1,0 +1,15 @@
+{
+"test_sample":{
+ "number":2,
+ "mass":[10, 20],
+ "spring":[7, 8],
+ "damping":[1, 0.5],
+ "input":[1,1],
+ "unit":{
+	"mass":"kg",
+	"spring":"N/m",
+	"damping":"N*m/s"
+ }
+}
+}
+
