@@ -1,0 +1,20 @@
+
+# 忽略.doc、ptt檔
+*.doc
+*.docx
+*.pptx
+*.ppt
+
+*.tmp
+*.gch
+
+*.bmp
+*.jpg
+*.jpeg
+*.hex
+*.exe
+*.o
+*.a
+*.asv
+
+
