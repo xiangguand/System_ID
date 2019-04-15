@@ -18,22 +18,14 @@ clc, clear, close all
     h: qxm
     V: mxL
 %}
-% Define dimension
-m = 2;
-q = 2;
-n = 4;
+[Ac, Bc, Cc, Dc, para_struct] = createMassDampingSpringModel('hw3_machanic_n2.json')
+u0 = para_struct.input_vect;
+m = para_struct.input_sz;
+q = para_struct.output_sz;
+n = para_struct.state_sz;
 L = 100;    % Create 100 terms of markov parameters
 u0 = [1;1];
 
-% Define parameters
-M = 1;   % mass
-K = 1;   % spring
-zeta = 0.1; % damping
-
-Ac = [0 1 0 0;-(2*K/M) -(2*zeta/M) (K/M) (zeta/M);0 0 0 1;(K/M) (zeta/M) -(K/M) -(zeta/M)]
-Bc = [0 0;1/M 0;0 0;0 1/M]
-Cc = [1 0 0 0;0 0 1 0]
-Dc = [0 0;0 0]
 model = ss(Ac, Bc, Cc, Dc);
 
 e = eig(Ac)

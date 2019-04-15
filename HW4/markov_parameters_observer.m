@@ -25,28 +25,21 @@ clc, clear, close all
     V: [(q+m)(L-1)+m]xL
     v: (m+q)x1
 %}
+
+[Ac, Bc, Cc, Dc, para_struct] = createMassDampingSpringModel('hw3_machanic_n2.json')
 % Define dimension
+m = para_struct.input_sz;
+q = para_struct.output_sz;
+n = para_struct.state_sz;
 delta_t = 0.01;
-m = 2;
-q = 2;
-n = 4;
-L = 100;    % Create 100 terms of markov parameters
+L = 1000;    % Create 100 terms of markov parameters
 u0 = [1;1];
 y0 = [0;0];
 v0 = [u0;y0];
 
-% Define parameters
-M = 1;   % mass
-K = 1;   % spring
-zeta = 0.1; % damping
 % Design observer feedback gain
 Gc = [0 0;0 0;0 0;0 0];
 Gd = [0 0;0 0;0 0;0 0];
-
-Ac = [0 1 0 0;-(2*K/M) -(2*zeta/M) (K/M) (zeta/M);0 0 0 1;(K/M) (zeta/M) -(K/M) -(zeta/M)]
-Bc = [0 0;1/M 0;0 0;0 1/M]
-Cc = [1 0 0 0;0 0 1 0]
-Dc = [0 0;0 0]
 
 ssd = ss(Ac, Bc, Cc, Dc);
 sysd = c2d(ssd, delta_t)
@@ -60,7 +53,8 @@ Gd(:,1) = -Ad(:,1);
 Gd(:,2) = -Ad(:,3);
 Ad_bar = Ad + Gd*Cd
 Bd_bar = [Bd + Gd*Dd -Gd]
-e = eig(Ad_bar)
+eig_Ad_bar = eig(Ad_bar)
+
 % Calculate system Markov parameters
 % using symbol hn(k)
 % Discrete

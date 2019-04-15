@@ -20,24 +20,17 @@ clc, clear, close all
 %}
 % Define dimension
 delta_t = 0.01;
-m = 2;
-q = 2;
-n = 4;
-L = 100;    % Create 100 terms of markov parameters
-u0 = [1;1];
 
-% Define parameters
-M = 1;   % mass
-K = 1;   % spring
-zeta = 0.1; % damping
+L = 2000;    % Create 100 terms of markov parameters
 
-Ac = [0 1 0 0;-(2*K/M) -(2*zeta/M) (K/M) (zeta/M);0 0 0 1;(K/M) (zeta/M) -(K/M) -(zeta/M)]
-Bc = [0 0;1/M 0;0 0;0 1/M]
-Cc = [1 0 0 0;0 0 1 0]
-Dc = [0 0;0 0]
+[Ac, Bc, Cc, Dc, para_struct] = createMassDampingSpringModel('hw3_machanic_n2.json')
+u0 = para_struct.input_vect;
+m = para_struct.input_sz;
+q = para_struct.output_sz;
+n = para_struct.state_sz;
 
 ssd = ss(Ac, Bc, Cc, Dc);
-sysd = c2d(ssd, delta_t)
+sysd = c2d(ssd, delta_t);
 
 Ad = expm(Ac*delta_t);
 Bd = Ac^-1*(Ad-eye(4))*Bc;
@@ -50,14 +43,13 @@ e = eig(Ad)
 % using symbol hn(k)
 h = zeros([q, m*L]);
 U = zeros([m*L, L]);
-yn = zeros([q, L]);
 step = 1;
 i = 1;
 while step < m*L
    if step == 1
        h(:, step:step+m-1) = Dd;
    else
-       h(:, step:step+m-1) = Cc*(Ac^(step-2))*Bc;
+       h(:, step:step+m-1) = Cd*(Ad^(step-2))*Bd;
    end
    U(step:step+m-1, i) = u0;
    i = i + 1;
