@@ -36,9 +36,11 @@ clc, clear, close all
 m = para_struct.input_sz;
 q = para_struct.output_sz;
 n = para_struct.state_sz;
-delta_t = 0.01;
 SYSTEM_DIM = 4;
-L = 100;    % Create 100 terms of markov parameters
+Fs = 10;
+Ts = 1/Fs;
+delta_t = Ts;
+L = 50;    % Create 50 terms of markov parameters
 u0 = [1;1];
 y0 = [0;0];
 v0 = [u0;y0];
@@ -96,17 +98,17 @@ for k=5:L
     y(:, k) = temp_data2 + temp_data1 + Dd*u(:,k);
 end
 
-x_dot = linspace(1, L, L);
+t_dot = linspace(1, Ts*L, L);
 figure();
-plot(x_dot, y(1, :));
-xlabel('k samples');
+plot(t_dot, y(1, :));
+xlabel('time (s)');
 ylabel('output');
 title('y1 Markov parameters by using ARX model');
 grid on;
 
 figure();
-plot(x_dot, y(2, :));
-xlabel('k samples');
+plot(t_dot, y(2, :));
+xlabel('time (s)');
 ylabel('output');
 title('y2 Markov parameters by using ARX model');
 grid on;

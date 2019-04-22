@@ -19,9 +19,9 @@ clc, clear, close all
     C matrix: qxn
     D matrix: qxm
    
-    y = h * V    % h is markov parameters
+    y = Y * V    % Y is markov parameters
     y: qxL
-    h: qx[(q+m)(L-1)+m]
+    Y: qx[(q+m)(L-1)+m]
     V: [(q+m)(L-1)+m]xL
     v: (m+q)x1
 %}
@@ -31,15 +31,16 @@ clc, clear, close all
 m = para_struct.input_sz;
 q = para_struct.output_sz;
 n = para_struct.state_sz;
-delta_t = 0.01;
-L = 1000;    % Create 100 terms of markov parameters
+Fs = 10;
+Ts = 1/Fs;
+delta_t = Ts;
+L = 500;    % Create 500 terms of markov parameters
 u0 = [1;1];
 y0 = [0;0];
 v0 = [u0;y0];
 
 % Design observer feedback gain
-Gc = [0 0;0 0;0 0;0 0];
-Gd = [0 0;0 0;0 0;0 0];
+Gd = [-0.9897511 ,  0.35442173; 0.19670007, -1.2367382;-0.00490059,-0.9946962; -0.09799996,  0.09871061]
 
 ssd = ss(Ac, Bc, Cc, Dc);
 sysd = c2d(ssd, delta_t)
@@ -49,27 +50,24 @@ Bd = Ac^-1*(Ad-eye(4))*Bc;
 Cd = Cc;
 Dd = Dc;
 
-Gd(:,1) = -Ad(:,1);
-Gd(:,2) = -Ad(:,3);
 Ad_bar = Ad + Gd*Cd
 Bd_bar = [Bd + Gd*Dd -Gd]
 eig_Ad_bar = eig(Ad_bar)
 
 % Calculate system Markov parameters
-% using symbol hn(k)
+% using symbol Yn(k)
 % Discrete
-h = zeros([q, (q+m)*(L-1)+m]);
+Y = zeros([q, (q+m)*(L-1)+m]);
 V = zeros([(q+m)*(L-1)+m, L]);
-yn = zeros([q, L]);
 step = 1;
 i = 1;
 while step < (q+m)*(L-1)+m
     if step == 1
-       h(:, step:step+1) = Dd;
+       Y(:, step:step+1) = Dd;
        V(step:step+1, i) = u0;
        step = step + q;
     else
-        h(:, step:step+3) = Cd * Ad_bar^(i-2) * Bd_bar;
+        Y(:, step:step+3) = Cd * Ad_bar^(i-2) * Bd_bar;
         V(step:step+3, i) = v0;
         step = step + n;
     end
@@ -80,20 +78,20 @@ if L ~= i-1
    pause(5);
 end
 
-yn = h*V;
+y = Y*V;
 
-x_dot = linspace(1, L, L);
+t_dot = linspace(1, L*Ts, L);
 figure();
-plot(x_dot, yn(1, :));
-xlabel('k samples');
+plot(t_dot, y(1, :));
+xlabel('time (s)');
 ylabel('output');
-title('y1 Markov parameters');
+title('y1 Markov parameters (use observer)');
 grid on;
 
 figure();
-plot(x_dot, yn(2, :));
-xlabel('k samples');
+plot(t_dot, y(2, :));
+xlabel('time (s)');
 ylabel('output');
-title('y2 Markov parameters');
+title('y2 Markov parameters (use observer)');
 grid on;
 

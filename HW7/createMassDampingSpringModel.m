@@ -1,5 +1,5 @@
-function [A, B, C, D, para_struct] = createMassDampingSpringModel(json_config_file)
-
+function [Ac, Bc, Cc, Dc, para_struct] = createMassDampingSpringModel(json_config_file)
+% Read the json file
 config_file = fopen(json_config_file);
 save_text = '';
 while 1
@@ -51,12 +51,7 @@ for i=1:n
     end
 end
 
-% initialize state space parameters
-A = zeros([n*2, n*2]);
-B = zeros([n*2, n]);
-C = zeros([n, n*2]);
-D = zeros([n, n]);
-
+% Create system parameters
 if n==1
     para_matrix(1) = mass(1)*s^2 + damping(1)*s + spring(1);
 elseif n==2
@@ -74,12 +69,17 @@ para_matrix = para_matrix./mass     % let highest s be 1
 %%% Save para_matrix to structure type
 para_struct.para_matrix = para_matrix;
 
+% initialize state space parameters
+Ac = zeros([n*2, n*2]);
+Bc = zeros([n*2, n]);
+Cc = zeros([n, n*2]);
+Dc = zeros([n, n]);
 % create A, B, C, D state space
 for i=1:n*2
     if mod(i, 2) ~= 0
-       A(i, i+1) = 1;
+       Ac(i, i+1) = 1;
        %%% C matrix
-       C((i-1)/2+1, i) = 1;
+       Cc((i-1)/2+1, i) = 1;
     else
         %%% A matrix
         temp_arr = zeros([1, n*2]);
@@ -97,13 +97,11 @@ for i=1:n*2
                p = p + 2;
             end
         end
-        A(i, :) = temp_arr;
+        Ac(i, :) = temp_arr;
         %%% B matrix
-        B(i, i/2) = para_matrix(i/2, end);
+        Bc(i, i/2) = para_matrix(i/2, end);
     end
     
 end
-
-
 end
 
