@@ -23,9 +23,9 @@ clc, clear, close all
 Fs = 10;
 Ts = 1/Fs;
 delta_t = Ts;
-chop_sections = 10;
+chop_sections = 5;
 
-L = 2000;    % Create 2000 terms of markov parameters
+L = 30000;    % Create 2000 terms of markov parameters
 
 [Ac, Bc, Cc, Dc, para_struct] = createMassDampingSpringModel('hw3_machanic_n2.json')
 u0 = para_struct.input_vect;
@@ -49,7 +49,7 @@ Y = zeros([q, m*L]);
 % Random noise generates, to exite system
 U = zeros([m*L, L]);
 save_U = zeros([2,L]);
-random_level = 1;
+random_level = 2;
 step = 1;
 i = 1;
 while step < m*L
@@ -108,84 +108,98 @@ grid on;
 % step 3, chop the input and output sequences for several sections
 chop_Y = reshape(Y, [2, 2*L/chop_sections, chop_sections]);
 chop_U = reshape(save_U, [m, L/chop_sections, chop_sections]);
-chop_y = reshape(y, [q, L/chop_sections, chop_sections]);
+chop_y = reshape(y, [2, L/chop_sections, chop_sections]);
 
 % Do circular correlation algorithm, R_yu and R_uu in each section
-N = 1 + (L/chop_sections-1)*2;
+N = double(int32(L/chop_sections/2));
 chop_Ryu = zeros([m, N, chop_sections]);
 chop_Ruu = zeros([q, N, chop_sections]);
-chop_Syu = zeros([m, N, chop_sections]);
-chop_Suu = zeros([q, N, chop_sections]);
 for chop_step = 1:chop_sections
-    for j=1:q
-        chop_Ryu(j, :, chop_step) = xcorr(chop_y(j, :, chop_step), chop_U(j, :, chop_step), 'biased');
-        chop_Ruu(j, :, chop_step) = xcorr(chop_U(j, :, chop_step), chop_U(j, :, chop_step), 'biased');
-        
-        chop_Syu(j,:,chop_step) = fft(chop_Ryu(j,:,chop_step));
-        chop_Suu(j,:,chop_step) = fft(chop_Ruu(j,:,chop_step));
+    for i=1:N
+        temp_yu = zeros([q, 1]);
+        temp_uu = zeros([m, 1]);
+        for j=1:N
+            temp_yu = temp_yu + chop_y(:, j+i, chop_step) .* chop_U(:, j, chop_step);
+            temp_uu = temp_uu + chop_U(:, j+i, chop_step) .* chop_U(:, j, chop_step);
+        end
+        chop_Ryu(:, i, chop_step) = temp_yu / N;
+        chop_Ruu(:, i, chop_step) = temp_uu / N;
     end
 end
-
-% plot the R_yu and R_uu
-flat_Ryu = reshape(chop_Ryu, [q, N*chop_sections]);
-flat_Ruu = reshape(chop_Ruu, [q, N*chop_sections]);
-x_t = linspace(0, N*chop_sections*Ts, N*chop_sections);
+chop_Syu = zeros([m, N, chop_sections]);
+chop_Suu = zeros([q, N, chop_sections]);
+for i=1:chop_sections
+    % input one
+    chop_Syu(1,:,i) = abs(fft(chop_Ryu(1,:,i)));
+    chop_Suu(1,:,i) = abs(fft(chop_Ruu(1,:,i)));
+    % input two
+    chop_Syu(2,:,i) = abs(fft(chop_Ryu(2,:,i)));
+    chop_Suu(2,:,i) = abs(fft(chop_Ruu(2,:,i)));
+end
+mean_Syu = mean(chop_Syu(:, 1:N/2, :), 3);
+mean_Suu = mean(chop_Suu(:, 1:N/2, :), 3);
+freq_x = linspace(0, Fs/2, N/2);
 figure();
 subplot(2,1,1);
-plot(x_t, abs(flat_Ryu(1, :)));
-title('R_{yu}1');
+plot(freq_x, mean_Syu(1, :));
+title('Mean of density spectrum S_{yu}1');
 grid on;
 subplot(2,1,2);
-plot(x_t, abs(flat_Ryu(2, :)));
-title('R_{yu}2');
+plot(freq_x, mean_Syu(2, :));
+title('Mean of density spectrum S_{yu}2');
 grid on;
 
 figure();
 subplot(2,1,1);
-plot(x_t, abs(flat_Ruu(1, :)));
-title('R_{uu}1');
-grid on;
-subplot(2,1,2);
-plot(x_t, abs(flat_Ruu(2, :)));
-title('R_{uu}2');
-grid on;
-
-mean_Syu = mean(chop_Syu(:, 1:N, :), 3);
-mean_Suu = mean(chop_Suu(:, 1:N, :), 3);
-freq_x = linspace(0, Fs/2, N);
-figure();
-subplot(2,1,1);
-plot(freq_x, abs(mean_Suu(1, :)));
+plot(freq_x, mean_Suu(1, :));
 title('Mean of density spectrum S_{uu}1');
 grid on;
 subplot(2,1,2);
-plot(freq_x, abs(mean_Suu(2, :)));
+plot(freq_x, mean_Suu(2, :));
 title('Mean of density spectrum S_{uu}2');
 grid on;
 
 
 % step 4, calculate the transfer function and the FIR weighting sequence
-Gz = mean_Syu .* (mean_Suu.^-1);
+Gz = abs(mean_Syu) .* (abs(mean_Suu).^-1);
 figure();
 subplot(2,1,1);
-plot(freq_x, abs(Gz(1, :)));
+plot(freq_x, Gz(1, :));
 title('Mean of density spectrum G_z1');
 grid on;
 subplot(2,1,2);
-plot(freq_x, abs(Gz(2, :)));
+plot(freq_x, Gz(2, :));
 title('Mean of density spectrum G_z2');
 grid on;
 
 % step 5, use ifft of function of Matlab to transform the elements of G[n]
 % matrix back the Markov parameters.
 new_Y = [ifft(Gz(1, :)); ifft(Gz(2, :))];
-new_t = linspace(0, Ts*L/chop_sections, N);
+new_t = linspace(0, Ts*L/chop_sections, N/2);
 figure();
 subplot(2,1,1);
-plot(new_t, abs(new_Y(1, :)));
+plot(new_t, new_Y(1, :));
 title('New Markov parameters Y^*_1');
 grid on;
 subplot(2,1,2);
-plot(new_t, abs(new_Y(2, :)));
+plot(new_t, new_Y(2, :));
 title('New Markov parameters Y^*_2');
 grid on;
+
+% % Do fft
+% fft_chop_U = zeros(m, L/chop_sections, chop_sections);
+% fft_chop_y = zeros(2, L/chop_sections, chop_sections);
+% temp_l = 1;
+% x = linspace(0, Ts*100, 100);
+% for i=1:chop_sections
+%     % input one
+%     fft_chop_U(1,:,i) = abs(fft(chop_U(1,:,i)));
+%     fft_chop_y(1,:,i) = abs(fft(chop_y(1,:,i)));
+%     % input two
+%     fft_chop_U(2,:,i) = abs(fft(chop_U(2,:,i)));
+%     fft_chop_y(2,:,i) = abs(fft(chop_y(2,:,i)));
+% end
+% % mean the input and output, after fft get half of data that it is valid.
+% mean_fft_U = mean(fft_chop_U(:, 1:L/chop_sections/2, :), 3);
+% mean_fft_y = mean(fft_chop_y(:, 1:L/chop_sections/2, :), 3);
+

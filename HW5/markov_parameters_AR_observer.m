@@ -40,14 +40,13 @@ SYSTEM_DIM = 4;
 Fs = 10;
 Ts = 1/Fs;
 delta_t = Ts;
-L = 50;    % Create 50 terms of markov parameters
+L = 500;    % Create 50 terms of markov parameters
 u0 = [1;1];
 y0 = [0;0];
 v0 = [u0;y0];
 
 % Design observer feedback gain
-Gc = [0 0;0 0;0 0;0 0];
-Gd = [0 0;0 0;0 0;0 0];
+Gd = [-0.9897511 ,  0.35442173; 0.19670007, -1.2367382;-0.00490059,-0.9946962; -0.09799996,  0.09871061];
 
 ssd = ss(Ac, Bc, Cc, Dc);
 sysd = c2d(ssd, delta_t)
@@ -57,8 +56,6 @@ Bd = Ac^-1*(Ad-eye(4))*Bc;
 Cd = Cc;
 Dd = Dc;
 
-Gd(:,1) = -Ad(:,1);
-Gd(:,2) = -Ad(:,3);
 Ad_bar = Ad + Gd*Cd
 Bd_bar = [Bd + Gd*Dd -Gd]
 eig_Ad_bar = eig(Ad_bar)
@@ -90,7 +87,7 @@ for k=5:L
     temp_data2 = zeros([m, 1]);
     temp_data1 = zeros([m, 1]);
     s = 1;
-    for i=1:4
+    for i=1:SYSTEM_DIM
         temp_data2  = temp_data2 + Yi_2(:,s:s+1)*y(:, k-i);
         temp_data1 =  temp_data1 + Yi_1(:,s:s+1)*u(:, k-i);
         s = s + 2;

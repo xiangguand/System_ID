@@ -32,7 +32,7 @@ function [amplitude, phase] = getSineAmplitudeAndPhase(signal)
             first_flag = false;
         end
     end
-    % one sine period is p2 - p1
+    % one sine period is p2 - p1s
 %     p1
 %     p2
 %     temp_phase

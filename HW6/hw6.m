@@ -28,14 +28,13 @@ m = para_struct.input_sz;
 q = para_struct.output_sz;
 n = para_struct.state_sz;
 % step 1 : Decide the sampling rate according to the analog system
-Fs = 100;
+Fs = 220;
 Ts = 1/Fs;
 
-SYSTEM_DIM = 4;
-L = 200;    % Create 200 terms of markov parameters
+L = 300;    % Create 300 terms of markov parameters
 freq_L = 0.5;
-freq_H = 40;
-freq_size = 10;
+freq_H = 100;
+freq_size = 5;
 time_value = (freq_H/freq_L)^(1/freq_size);
 
 % step 2 : Degitalize the system with the above sampling rate to obtain
@@ -44,26 +43,26 @@ Ad = expm(Ac*Ts);
 Bd = Ac^-1*(Ad-eye(4))*Bc;
 Cd = Cc;
 Dd = Dc;
+
+% digital
 ssd = ss(Ad, Bd, Cd, Dd);
 figure();
 bode(ssd);
 grid on;
 
-% step 3 : change input sinusoid wave frequency from low to high.
-
-
-Yi = zeros([q, m*L]);
+Y = zeros([q, m*L]);
 step = 1;
 while step < m*L
    if step == 1
-       Yi(:, step:step+m-1) = Dd;
+       Y(:, step:step+m-1) = Dd;
    else
-       Yi(:, step:step+m-1) = Cd*(Ad^(step-2))*Bd;
+       Y(:, step:step+m-1) = Cd*(Ad^(step-2))*Bd;
    end
    step = step + m;
 end
 
 % ##################################################### %
+% step 3 : change input sinusoid wave frequency from low to high.
 % Input 1 as sinwave, Input 2 all zero
 % Becareful, sine wave frequency should be less than Fs/2
 collect_Am1 = zeros([1, freq_size]);
@@ -80,15 +79,15 @@ while true
     t_dot = [dot1 ; dot2];
 
 %     figure();
-%     plot(dot1, sin(w*dot1*Ts));
-%     title("input");
+%     plot(dot1, A*sin(w*dot1*Ts));
+%     title("input");hold on;
 
     y = zeros([q, L]);
     for k=1:L
         step = 1;
         for tau=1:L
            u = sin(w*t_dot*Ts);
-           y(:, k) = y(:, k) + Yi(:, step:step+m-1) * u(:, k + tau); 
+           y(:, k) = y(:, k) + Y(:, step:step+m-1) * u(:, k + tau); 
            step = step + m;
         end
     end
@@ -110,14 +109,15 @@ end
 freq_x = linspace(freq_L, freq_H, freq_size);
 
 figure();
-subplot(2,1,1)
+sgtitle('My bode diagram');
+subplot(4,2,1)
 plot(freq_x, collect_Am1);
 title("AM1 by input1");
 xlabel("Frequency (Hz)");
 ylabel("db");
 grid on;
 set(gca, 'XScale', 'log');
-subplot(2,1,2)
+subplot(4,2,3)
 plot(freq_x, collect_Ph1);
 title("Ph1 by input1");
 xlabel("Frequency (Hz)");
@@ -125,15 +125,14 @@ ylabel("«×");
 grid on;
 set(gca, 'XScale', 'log');
 
-figure();
-subplot(2,1,1)
+subplot(4,2,5)
 plot(freq_x, collect_Am2);
 title("AM2 by input1");
 xlabel("Frequency (Hz)");
 ylabel("db");
 grid on;
 set(gca, 'XScale', 'log');
-subplot(2,1,2)
+subplot(4,2,7)
 plot(freq_x, collect_Ph2);
 title("Ph2 by input1");
 xlabel("Frequency (Hz)");
@@ -164,8 +163,8 @@ while true
     for k=1:L
         step = 1;
         for tau=1:L
-           u = sin(w*t_dot*Ts);
-           y(:, k) = y(:, k) + Yi(:, step:step+m-1) * u(:, k + tau); 
+           u = sin(A*w*t_dot*Ts);
+           y(:, k) = y(:, k) + Y(:, step:step+m-1) * u(:, k + tau); 
            step = step + m;
         end
     end
@@ -186,15 +185,14 @@ end
 
 freq_x = linspace(freq_L, freq_H, freq_size);
 
-figure();
-subplot(2,1,1)
+subplot(4,2,2)
 plot(freq_x, collect_Am1);
 title("AM1 by input2");
 xlabel("Frequency (Hz)");
 ylabel("db");
 grid on;
 set(gca, 'XScale', 'log');
-subplot(2,1,2)
+subplot(4,2,4)
 plot(freq_x, collect_Ph1);
 title("Ph1 by input2");
 xlabel("Frequency (Hz)");
@@ -202,15 +200,14 @@ ylabel("«×");
 grid on;
 set(gca, 'XScale', 'log');
 
-figure();
-subplot(2,1,1)
+subplot(4,2,6)
 plot(freq_x, collect_Am2);
 title("AM2 by input2");
 xlabel("Frequency (Hz)");
 ylabel("db");
 grid on;
 set(gca, 'XScale', 'log');
-subplot(2,1,2)
+subplot(4,2,8)
 plot(freq_x, collect_Ph2);
 title("Ph2 by input2");
 xlabel("Frequency (Hz)");
