@@ -28,7 +28,7 @@ L = 2000;    % Create 2000 terms of markov parameters
 
 % simulation
 k_dots = 1:1:L;
-sin_freq1 = 10;
+sin_freq1 = 25;
 sin_A1 = 30;
 sin_freq2 = 20;
 sin_A2 = 5;

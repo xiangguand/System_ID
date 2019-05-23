@@ -24,11 +24,11 @@ d
 %}
 
 %% step 1
-p = 5;
-q = 2;
+p = 5;    % input
+q = 3;    % output
 L = 2000;
 H_crop_dim = 2;
-t_begin = 6;
+t_begin = 2;
 lambda = 1;
 t_size = t_begin;
 % input, rand generate
@@ -38,10 +38,8 @@ X(:, 2) = X(:, 2) / 5;
 X(:, 3) = X(:, 3) * 3.14;
 X(:, 4) = X(:, 4) * 90;
 
-H = X(:, 1:H_crop_dim);
-
 % As we know A matrix, this is the answer
-A = [1 2;9 1.21;7 -2;5 2;8 7]
+A = [1 2 -5;9 1.21 5;7 -2 3.14;5 2 -2.02;8 7 6.58]    % pxq
 
 % random noise
 E_n = rand([L, q])*0.01;
