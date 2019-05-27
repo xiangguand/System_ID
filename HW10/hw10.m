@@ -1,116 +1,93 @@
 clc, clear, close all
 %{
     System ID Homework 10
-    input dimension p = 5
-    output dimension q = 2
-    input matrix H
-    output matrix Y
-    ID parameters A_y
-    X: txp
-    Y: txq
-    H: txchop_num
-d
-    Hi: txi 
-    Ei_y: txq
-    Ei_x: tx(p-i)
-    Ai_y: i x q
-    Ai_x: i x p
-    A_y: p x q
-    A_x: p x p
-    data length L
-    Y^{hat} = H*A_y
-    E_x = X - H*A_x
-    E_y = Y - H*A_y
+    input dimension p = n = 5
+    output dimension q = 3
 %}
 
 %% step 1
 p = 5;    % input
+n = p;
 q = 3;    % output
-L = 2000;
+L = 200;
 H_crop_dim = 2;
-t_begin = 2;
-lambda = 1;
+t_begin = 10;
+lambda = 0.95;  % forgeting factor
 t_size = t_begin;
 % input, rand generate
 X = rand([L, p]);
-X(:, 1) = X(:, 1) * 2;
-X(:, 2) = X(:, 2) / 5;
-X(:, 3) = X(:, 3) * 3.14;
-X(:, 4) = X(:, 4) * 90;
+X(:, 1) = X(:, 1) * 2 + 1;
+X(:, 2) = X(:, 2) / 5 + 3.2;
+X(:, 3) = X(:, 3) * 3.14 - 0.5;
+X(:, 4) = X(:, 3)+0.001;
+% X(:, 4) = X(:, 4) * 90 + 3.25;
 
 % As we know A matrix, this is the answer
 A = [1 2 -5;9 1.21 5;7 -2 3.14;5 2 -2.02;8 7 6.58]    % pxq
 
 % random noise
-E_n = rand([L, q])*0.01;
+E_n = rand([L, q])*10;
 
 % output
 Y = X * A + E_n;
 
-%% step 2
-% initial
-A_x = rand([p, p, p]);
-A_y = rand([p, q, p]);
+%% step 3, use LSE
+A_y_useLSE = pseudo_inverse(X'*X)*X'*Y
+E_y_useLSE = Y - X * A_y_useLSE;
 
-R_xx = zeros([p, p]);
-R2 = zeros([p, p]);
-R_xy = zeros([q, p]);
-R_uu = pining(p);
-R3 = R_uu;
-C_xx = zeros([p, p]);
-C_xy = zeros([p, q]);
+%% step 2
+A_x = rand([p, p]);
+A_y = rand([p, q]);
+W = A_y;
+erRLS_array = zeros([L-t_size+1, 1]);
+erQR_array = zeros([L-t_size+1, 1]);
+erLSE_array = zeros([L-t_size+1, 1]);
+c = 1;
+xx = 1:1:t_size;
 % using RLS (Recusive Least Square) to tune our parameters
-for t = t_begin:L
+for t = t_begin+1:L
     % channel initial
-    e_x = X(t-t_size+1:t, :)';   % X dim x n_samples 
-    e_x2 = e_x
-    e_y = Y(t-t_size+1:t, :)';   % Y dim x n_samples
-    for i=2:p   % channel update
-        R_uu(i) = R_uu(i-1) - e_x(i, i-1)*pseudo_inverse(R_xx(i, i-1))*e_x(i, i-1);
-        R_xx(:, i-1) = lambda*R_xx(:, i-1) + e_x(i, i-1)*pseudo_inverse(R_uu(i-1))*e_x(:, i-1);
-        e_x(:, i) = e_x(:, i-1) + pseudo_inverse(R_xx(i, i-1))*R_xx(:, i-1);
-        R_xy(:, i-1) = lambda*R_xy(:, i-1) + e_x(i, i-1)*pseudo_inverse(R_uu(i-1))*e_y(:, i-1);
-        e_y(:, i) = e_y(:, i) - e_x(i, i-1)*pseudo_inverse(R_xx(i, i-1))*R_xy(:, i-1);
-        R3(i) = R3(i-1) - e_x2(i, i-1)*pseudo_inverse(R2(i, i-1))*e_x2(i, i-1);
-        for j=i+1:p
-            R2(j, i-1) = lambda*R2(j, i-1) + e_x2(i, i-1)*pseudo_inverse(R3(i-1))*e_x2(j, i-1);
-            e_x2(j, i) = e_x2(j, i-1) - e_x2(j, i-1)*pseudo_inverse(R2(i, i-1))*R2(j, i-1);
-        end
-    end % end i
-    for i=2:p
-        for j=i+1:p
-            C_xx(j, i-1) = pseudo_inverse(R_xx(i, i-1))*R_xx(j, i-1); 
-            temp_Ax = A_x(:, :, i);
-            temp_Ax(end, :) = 0;
-            temp2_Ax = A_x(:, i, i-1);
-            temp2_Ax(end, :) = -1;
-            A_x(:, :, i) = temp_Ax - temp2_Ax*C_xx(i-1, :);
-        end
-    end
-    for i=2:q
-        for j=1:q
-            C_xy(j, i-1) = pseudo_inverse(R_xx(i, i-1))*R_xy(j, i-1);
-            temp_Ay = A_y(:, :, i);
-            temp_Ay(end, :) = 0;
-            temp2_Ay = A_y(:, i, i-1);
-            temp2_Ay(end, :) = -1;
-            A_y(:, :, i) = temp_Ay - temp2_Ay*C_xy(i-1, :);
-        end
-    end
-    y_hat = Y(t, :)' - e_y(:, i);
-    err_y = e_y' - e_x'*A_y(:,:,end);
-    err_x = e_x' - e_x'*A_x(:,:,end);
+    e_x = X(t-t_begin:t-1, :);   % n_samples x Dimension_input
+    e_y = Y(t-t_begin:t-1, :);   % n_samples x Dimension_output
+    d = e_y;
+    [Q, R] = GramSchmidtQR(e_x);
+    phi = e_x'*(lambda*eye(t_size))*e_x;
+    yRLS = e_x*A_y;
+    erRLS = lambda*(d - yRLS);
+    A_y = A_y + pseudo_inverse(phi)*e_x'*erRLS;
+    erRLS_array(c, 1) = sum(sum(abs(erRLS)))/t_size;
+    
+    U = Q'*e_x;
+    w = pseudo_inverse(U)*Q'*e_y;
+    erQR = lambda*(d - e_x*w);
+    erQR_array(c, 1) = sum(sum(abs(erQR)))/t_size;
+    yQR = e_x*w;
+    
+    yLSE = e_x*A_y_useLSE;
+    erLSE = d - yRLS;
+    erLSE_array(c, 1) = sum(sum(abs(erLSE)))/t_size;
+    c = c + 1;
 
 end
 
+xdot = linspace(1, L-t_size+1, L-t_size+1);
+figure();
+hold on; grid on;
+plot(xdot, erRLS_array, 'r');
+plot(xdot, erLSE_array, 'b');
+plot(xdot, erQR_array, 'g');
+ylim([0, 15]);
+legend('RLS', 'LSE', 'QRD');
+xlabel('x dots');
+ylabel('error');
+title('error record');
 
-%% step 3, use LSE
-A_y_useLSE = (X'*X)^-1*X'*Y
-E_y_useLSE = Y - X * A_y_useLSE;
 
+total_erRLS = sum(erRLS_array)
+total_erLSE = sum(erLSE_array)
+total_erQR = sum(erQR_array)
 
 %% step 4
 
 
 %% step 5
-
