@@ -10,10 +10,14 @@
 
 ## System ID Homework 5 [Report](https://hackmd.io/voSYnPaxR5yoLRSYkNF4Bw)
 
-## System ID Homework 6 [Report](https://)
+## System ID Homework 6 [Report](https://hackmd.io/c6GqtRAESlud3BgmSYAMRw)
 
-## System ID Homework 7 [Report](https://)
+## System ID Homework 7 [Report](https://hackmd.io/pHD6yAhETd2vqRcEZlAkaw)
 
-## System ID Homework 8 [Report](https://)
+## System ID Homework 8 [Report](https://hackmd.io/cTBjxtnsSVqJHYcygXSUMg)
 
-## System ID Homework 9 [Report](https://)
+## System ID Homework 9 [Report](https://hackmd.io/HTVLStO-QFivKtD4SkOqTA)
+
+## System ID Homework 10 [Report](https://hackmd.io/t-IdCzQ1TWmJmQ5CBRPzFQ)
+
+## System ID Homework 11 [Report](https://hackmd.io/xUD-IKGZSjO5PYDFLikeqA)
