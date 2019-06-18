@@ -41,7 +41,7 @@ while step < m*L
    if step == 1
        h(:, step:step+m-1) = Dc;
    else
-       h(:, step:step+m-1) = Cc*(Ac^(step-2))*Bc;
+       h(:, step:step+m-1) = Cc*(Ac^(i-2))*Bc;
    end
    U(step:step+m-1, i) = u0;
    i = i + 1;

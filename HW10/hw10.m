@@ -19,8 +19,8 @@ X = rand([L, p]);
 X(:, 1) = X(:, 1) * 2 + 1;
 X(:, 2) = X(:, 2) / 5 + 3.2;
 X(:, 3) = X(:, 3) * 3.14 - 0.5;
-X(:, 4) = X(:, 3)+0.001;
-% X(:, 4) = X(:, 4) * 90 + 3.25;
+% X(:, 4) = X(:, 3)+0.001;
+X(:, 4) = X(:, 4) * 90 + 3.25;
 
 % As we know A matrix, this is the answer
 A = [1 2 -5;9 1.21 5;7 -2 3.14;5 2 -2.02;8 7 6.58]    % pxq
@@ -64,7 +64,7 @@ for t = t_begin+1:L
     yQR = e_x*w;
     
     yLSE = e_x*A_y_useLSE;
-    erLSE = d - yRLS;
+    erLSE = d - yLSE;
     erLSE_array(c, 1) = sum(sum(abs(erLSE)))/t_size;
     c = c + 1;
 

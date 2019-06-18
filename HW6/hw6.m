@@ -56,7 +56,7 @@ while step < m*L
    if step == 1
        Y(:, step:step+m-1) = Dd;
    else
-       Y(:, step:step+m-1) = Cd*(Ad^(step-2))*Bd;
+       Y(:, step:step+m-1) = Cd*(Ad^(i-2))*Bd;
    end
    step = step + m;
 end

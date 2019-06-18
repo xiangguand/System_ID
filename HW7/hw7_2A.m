@@ -54,7 +54,7 @@ while step < m*L
    if step == 1
        Yi(:, step:step+m-1) = Dd;
    else
-       Yi(:, step:step+m-1) = Cd*(Ad^(step-2))*Bd;
+       Yi(:, step:step+m-1) = Cd*(Ad^(i-2))*Bd;
    end
    U(step:step+m-1, i) = u0;
    i = i + 1;

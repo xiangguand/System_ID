@@ -23,9 +23,9 @@ clc, clear, close all
 Fs = 10;
 Ts = 1/Fs;
 delta_t = Ts;
-chop_sections = 5;
+chop_sections = 2;
 
-L = 30000;    % Create 2000 terms of markov parameters
+L = 2000;    % Create 2000 terms of markov parameters
 
 [Ac, Bc, Cc, Dc, para_struct] = createMassDampingSpringModel('hw3_machanic_n2.json')
 u0 = para_struct.input_vect;
@@ -47,9 +47,10 @@ e = eig(Ad)
 % using symbol hn(k)
 Y = zeros([q, m*L]);
 % Random noise generates, to exite system
-U = zeros([m*L, L]);
-save_U = zeros([2,L]);
-random_level = 2;
+U_noise = zeros([m*L, L]);
+save_noise = zeros([m,L]);
+U_unit = zeros([m*L, L]);
+random_level = 1;
 step = 1;
 i = 1;
 while step < m*L
@@ -58,16 +59,33 @@ while step < m*L
    else
        Y(:, step:step+m-1) = Cd*(Ad^(step-2))*Bd;
    end
-   U(step:step+m-1, i) = rand([2, 1])*random_level;  % random input
-   save_U(:, i) = U(step:step+m-1, i);
+   U_noise(step:step+m-1, i) = rand([2, 1])*random_level;  % random input
+   save_noise(:, i) = U_noise(step:step+m-1, i);
+   U_unit(step:step+m-1, i) = u0;
    i = i + 1;
    step = step + m;
 end
-
+noice = save_noise;
 % response of 2 output sequences.
 % change input random level, responses have the same effect.
-y = Y*U;
+y = Y*(U_noise+U_unit);
+y_markov = Y*U_unit;
 t_dot = linspace(0, L*Ts, L);
+
+figure();
+subplot(2,1,1);
+plot(t_dot, save_noise(1,:));
+title("output1 noise");
+xlabel("time (s)");
+ylabel("Value");
+grid on;
+
+subplot(2,1,2);
+plot(t_dot, save_noise(2,:));
+title("output2 noise");
+xlabel("time (s)");
+ylabel("Value");
+grid on;
 
 figure();
 subplot(2,1,1);
@@ -105,101 +123,147 @@ xlabel("frequency (Hz)");
 ylabel("Amplitude");
 grid on;
 
-% step 3, chop the input and output sequences for several sections
-chop_Y = reshape(Y, [2, 2*L/chop_sections, chop_sections]);
-chop_U = reshape(save_U, [m, L/chop_sections, chop_sections]);
-chop_y = reshape(y, [2, L/chop_sections, chop_sections]);
+Ryu = zeros([m, L]);
+Ruu = zeros([m, L]);
+Ryy = zeros([q, L]);
+Syu = zeros([m, L]);
+Suu = zeros([m, L]);
+Syy = zeros([q, L]);
+for j=1:q
+     temp = xcorr(y(j, :), save_noise(j, :), 'biased');
+     Ryu(j,:) = temp(:, 1:L);
+     Syu(j, :) = fft(Ryu(j, :));
+     temp = xcorr(y(j, :), y(j, :), 'biased');
+     Ryy(j,:) = temp(:, 1:L);
+     Syy(j, :) = fft(Ryy(j, :));
+end
+for j=1:m
+    temp = xcorr(save_noise(j, :), save_noise(j, :), 'biased');
+    Ruu(j,:) = temp(:, 1:L);
+    Suu(j, :) = fft(Ruu(j, :));
+end
 
+% plot the R_yu and R_uu
+x_t = linspace(0, L*Ts, L);
+figure();
+subplot(2,1,1);
+plot(x_t, Ryu(1, :));
+title('R_{yu}1');
+grid on;
+subplot(2,1,2);
+plot(x_t, Ryu(2, :));
+title('R_{yu}2');
+grid on;
+
+figure();
+subplot(2,1,1);
+plot(x_t, Ruu(1, :));
+title('R_{uu}1');
+grid on;
+subplot(2,1,2);
+plot(x_t, Ruu(2, :));
+title('R_{uu}2');
+grid on;
+
+figure();
+subplot(2,1,1);
+plot(x_t, Ryy(1, :));
+title('R_{yy}1');
+grid on;
+subplot(2,1,2);
+plot(x_t, Ryy(2, :));
+title('R_{yy}2');
+grid on;
+
+% step 3, chop the input and output sequences for several sections
 % Do circular correlation algorithm, R_yu and R_uu in each section
-N = double(int32(L/chop_sections/2));
-chop_Ryu = zeros([m, N, chop_sections]);
-chop_Ruu = zeros([q, N, chop_sections]);
+N = 1 + (L/chop_sections-1)*2;
+chop_Ryu = zeros([m, L/chop_sections, chop_sections]);
+chop_Ruu = zeros([q, L/chop_sections, chop_sections]);
+chop_Ryy = zeros([q, L/chop_sections, chop_sections]);
+chop_Syu = zeros([m, L/chop_sections, chop_sections]);
+chop_Suu = zeros([q, L/chop_sections, chop_sections]);
+chop_Syy = zeros([q, L/chop_sections, chop_sections]);
 for chop_step = 1:chop_sections
-    for i=1:N
-        temp_yu = zeros([q, 1]);
-        temp_uu = zeros([m, 1]);
-        for j=1:N
-            temp_yu = temp_yu + chop_y(:, j+i, chop_step) .* chop_U(:, j, chop_step);
-            temp_uu = temp_uu + chop_U(:, j+i, chop_step) .* chop_U(:, j, chop_step);
-        end
-        chop_Ryu(:, i, chop_step) = temp_yu / N;
-        chop_Ruu(:, i, chop_step) = temp_uu / N;
+    for j=1:q
+        chop_Ryu(j, :, chop_step) = Ryu(j, (chop_step-1)*(L/chop_sections)+1:(chop_step)*(L/chop_sections));
+        chop_Ruu(j, :, chop_step) = Ruu(j, (chop_step-1)*(L/chop_sections)+1:(chop_step)*(L/chop_sections));
+        chop_Ryy(j, :, chop_step) = Ryy(j, (chop_step-1)*(L/chop_sections)+1:(chop_step)*(L/chop_sections));
+
+        chop_Syu(j,:,chop_step) = Syu(j, (chop_step-1)*(L/chop_sections)+1:(chop_step)*(L/chop_sections));
+        chop_Suu(j,:,chop_step) = Suu(j, (chop_step-1)*(L/chop_sections)+1:(chop_step)*(L/chop_sections));
+        chop_Syy(j,:,chop_step) = Syy(j, (chop_step-1)*(L/chop_sections)+1:(chop_step)*(L/chop_sections));
     end
 end
-chop_Syu = zeros([m, N, chop_sections]);
-chop_Suu = zeros([q, N, chop_sections]);
-for i=1:chop_sections
-    % input one
-    chop_Syu(1,:,i) = abs(fft(chop_Ryu(1,:,i)));
-    chop_Suu(1,:,i) = abs(fft(chop_Ruu(1,:,i)));
-    % input two
-    chop_Syu(2,:,i) = abs(fft(chop_Ryu(2,:,i)));
-    chop_Suu(2,:,i) = abs(fft(chop_Ruu(2,:,i)));
-end
-mean_Syu = mean(chop_Syu(:, 1:N/2, :), 3);
-mean_Suu = mean(chop_Suu(:, 1:N/2, :), 3);
-freq_x = linspace(0, Fs/2, N/2);
+
+mean_Syu = mean(chop_Syu(:, 1:L/chop_sections, :), 3);
+mean_Suu = mean(chop_Suu(:, 1:L/chop_sections, :), 3);
+mean_Syy = mean(chop_Syy(:, 1:L/chop_sections, :), 3);
+freq_x = linspace(0, Fs/2, L/chop_sections);
 figure();
 subplot(2,1,1);
-plot(freq_x, mean_Syu(1, :));
-title('Mean of density spectrum S_{yu}1');
+plot(freq_x, abs(mean_Suu(1, :)));
+title('Mean of density spectrum S_{uu}1');
+xlabel("frequency (Hz)");
+ylabel("Amplitude");
 grid on;
 subplot(2,1,2);
-plot(freq_x, mean_Syu(2, :));
-title('Mean of density spectrum S_{yu}2');
+plot(freq_x, abs(mean_Suu(2, :)));
+title('Mean of density spectrum S_{uu}2');
+xlabel("frequency (Hz)");
+ylabel("Amplitude");
 grid on;
 
 figure();
 subplot(2,1,1);
-plot(freq_x, mean_Suu(1, :));
-title('Mean of density spectrum S_{uu}1');
+plot(freq_x, abs(mean_Syu(1, :)));
+title('Mean of density spectrum S_{yu}1');
+xlabel("frequency (Hz)");
+ylabel("Amplitude");
 grid on;
 subplot(2,1,2);
-plot(freq_x, mean_Suu(2, :));
-title('Mean of density spectrum S_{uu}2');
+plot(freq_x, abs(mean_Syu(2, :)));
+title('Mean of density spectrum S_{yu}2');
+xlabel("frequency (Hz)");
+ylabel("Amplitude");
 grid on;
 
 
 % step 4, calculate the transfer function and the FIR weighting sequence
-Gz = abs(mean_Syu) .* (abs(mean_Suu).^-1);
+Gz = mean_Syu .* (mean_Suu.^-1);
 figure();
 subplot(2,1,1);
-plot(freq_x, Gz(1, :));
+plot(freq_x, abs(Gz(1, :)));
 title('Mean of density spectrum G_z1');
+xlabel("frequency (Hz)");
+ylabel("Amplitude");
 grid on;
 subplot(2,1,2);
-plot(freq_x, Gz(2, :));
+plot(freq_x, abs(Gz(2, :)));
 title('Mean of density spectrum G_z2');
+xlabel("frequency (Hz)");
+ylabel("Amplitude");
 grid on;
 
 % step 5, use ifft of function of Matlab to transform the elements of G[n]
 % matrix back the Markov parameters.
 new_Y = [ifft(Gz(1, :)); ifft(Gz(2, :))];
-new_t = linspace(0, Ts*L/chop_sections, N/2);
+new_t = linspace(0, Ts*L/chop_sections, L/chop_sections);
 figure();
 subplot(2,1,1);
-plot(new_t, new_Y(1, :));
+plot(new_t, abs(new_Y(1, :)));
 title('New Markov parameters Y^*_1');
+xlabel('seconds');
 grid on;
 subplot(2,1,2);
-plot(new_t, new_Y(2, :));
+plot(new_t, abs(new_Y(2, :)));
 title('New Markov parameters Y^*_2');
+xlabel('seconds');
 grid on;
 
-% % Do fft
-% fft_chop_U = zeros(m, L/chop_sections, chop_sections);
-% fft_chop_y = zeros(2, L/chop_sections, chop_sections);
-% temp_l = 1;
-% x = linspace(0, Ts*100, 100);
-% for i=1:chop_sections
-%     % input one
-%     fft_chop_U(1,:,i) = abs(fft(chop_U(1,:,i)));
-%     fft_chop_y(1,:,i) = abs(fft(chop_y(1,:,i)));
-%     % input two
-%     fft_chop_U(2,:,i) = abs(fft(chop_U(2,:,i)));
-%     fft_chop_y(2,:,i) = abs(fft(chop_y(2,:,i)));
-% end
-% % mean the input and output, after fft get half of data that it is valid.
-% mean_fft_U = mean(fft_chop_U(:, 1:L/chop_sections/2, :), 3);
-% mean_fft_y = mean(fft_chop_y(:, 1:L/chop_sections/2, :), 3);
+% step 6, plot the Bode plot of spectrum sequences and Mean Spectrum
+% sequence and discuss to discuss the effect of SNR
+SNR1 = abs(mean_Syu(1,:))/(abs(mean_Syu(1,:)./mean_Suu(1,:)))
+SNR2 = abs(mean_Syu(2,:))/(abs(mean_Syu(2,:)./mean_Suu(2,:)))
+
 

@@ -6,17 +6,19 @@ xcorr
 %}
 clc, clear, close all
 % define parameters
-Fs = 100;
+Fs = 300;
 Ts = 1/Fs;
 delta_t = Ts;
 L = 100;
 t_dot = 1:1:L;
-noise = rand([1, L])*2;
-
-sin_freq = 15;
-A = 5;
-x = A*sin(2*pi*sin_freq*t_dot*delta_t);
-y = x + noise;
+noise1 = rand([1, L])*3;
+noise2 = rand([1, L])*3;
+sin_freq1 = 15;
+sin_freq2 = 30;
+A1 = 5;
+A2 = 3;
+x = A1*sin(2*pi*sin_freq1*t_dot*delta_t) + noise1;
+y = A2*sin(2*pi*sin_freq2*t_dot*delta_t) + noise2;
 
 figure();
 x_t = linspace(0, L/Fs, L);
