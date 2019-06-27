@@ -92,4 +92,17 @@ T_svd = tf(num, den)
 
 % T_orginal should the same as T_svd
 
+T_original
+T_svd
+
+pole_original = pole(T_original);
+pole_svd = pole(T_svd);
+figure();
+plot(pole_original, 'b*');
+hold on;grid on;
+plot(pole_svd, 'ro');
+legend('original', 'EVD');
+
+
+
 

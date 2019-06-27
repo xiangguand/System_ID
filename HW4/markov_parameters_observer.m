@@ -51,7 +51,7 @@ Cd = Cc;
 Dd = Dc;
 
 Ad_bar = Ad + Gd*Cd
-Bd_bar = [Bd + Gd*Dd -Gd]
+Bd_bar = [Bd+Gd*Dd, -Gd]
 eig_Ad_bar = eig(Ad_bar)
 
 % Calculate system Markov parameters

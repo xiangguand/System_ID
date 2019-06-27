@@ -19,14 +19,15 @@ X = rand([L, p]);
 X(:, 1) = X(:, 1) * 2 + 1;
 X(:, 2) = X(:, 2) / 5 + 3.2;
 X(:, 3) = X(:, 3) * 3.14 - 0.5;
-% X(:, 4) = X(:, 3)+0.001;
-X(:, 4) = X(:, 4) * 90 + 3.25;
+% X(:, 4) = X(:, 4) * 9 + 3.25;
+% 中間一段接近singular
+X(0.25*L:0.5*L, 4) = X(0.25*L:0.5*L, 3) + 0.0001;
 
 % As we know A matrix, this is the answer
 A = [1 2 -5;9 1.21 5;7 -2 3.14;5 2 -2.02;8 7 6.58]    % pxq
 
 % random noise
-E_n = rand([L, q])*10;
+E_n = rand([L, q]);
 
 % output
 Y = X * A + E_n;
@@ -73,11 +74,11 @@ end
 xdot = linspace(1, L-t_size+1, L-t_size+1);
 figure();
 hold on; grid on;
-plot(xdot, erRLS_array, 'r');
+% plot(xdot, erRLS_array, 'r');
 plot(xdot, erLSE_array, 'b');
 plot(xdot, erQR_array, 'g');
-ylim([0, 15]);
-legend('RLS', 'LSE', 'QRD');
+% legend('RLS', 'LSE', 'QRD');
+legend('LSE', 'QRD');
 xlabel('x dots');
 ylabel('error');
 title('error record');

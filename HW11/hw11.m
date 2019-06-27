@@ -17,6 +17,7 @@ n = para_struct.state_sz;
 
 ssd = ss(Ac, Bc, Cc, Dc);
 sysd = c2d(ssd, delta_t);
+T_original = tf(sysd);
 
 Ad = expm(Ac*delta_t);
 Bd = Ac^-1*(Ad-eye(4))*Bc;
@@ -46,10 +47,11 @@ yn = Y*U;
 
 % Constuct the Hankel matrix H0
 H0 = zeros([alpha*m, alpha*q]);
-n1 = 0;
+
 % オ场
 for i=1:m:alpha*m
     Hn = Y(:, i*(m-1)+m:i*(m-1)+m+1);
+    [i*(m-1)+m, i*(m-1)+m+1];
     for j=1:q:i
         index_r = j;
         index_c = (i-j+1);
@@ -58,7 +60,8 @@ for i=1:m:alpha*m
 end
 % 场
 for i=m+1:m:alpha*m
-    Hn = Y(:, i*(m-1)+m:i*(m-1)+m+1);
+    Hn = Y(:, alpha+i*(m-1)+2*m:alpha+i*(m-1)+2*m+1);
+    [alpha+i*(m-1)+2*m, alpha+i*(m-1)+2*m+1];
     for j=alpha*m-1:-q:i
         index_r = i+(alpha*m-j)-1;
         index_c = j;
@@ -66,12 +69,13 @@ for i=m+1:m:alpha*m
     end
 end
 
-% Constuct the Hankel matrix H0
+% Constuct the Hankel matrix H1
 H1 = zeros([alpha*m, alpha*q]);
 n1 = 0;
 % オ场
 for i=1:m:alpha*m
     Hn = Y(:, i*(m-1)+2*m:i*(m-1)+2*m+1);
+    [i*(m-1)+2*m, i*(m-1)+2*m+1];
     for j=1:q:i
         index_r = j;
         index_c = (i-j+1);
@@ -80,7 +84,8 @@ for i=1:m:alpha*m
 end
 % 场
 for i=m+1:m:alpha*m
-    Hn = Y(:, i*(m-1)+2*m:i*(m-1)+2*m+1);
+    Hn = Y(:, alpha+i*(m-1)+3*m:alpha+i*(m-1)+3*m+1);
+    [alpha+i*(m-1)+3*m,alpha+i*(m-1)+3*m+1];
     for j=alpha*m-1:-q:i
         index_r = i+(alpha*m-j)-1;
         index_c = j;
@@ -89,21 +94,31 @@ for i=m+1:m:alpha*m
 end
 % EVD the Markov parameters
 [R, Sigma, S] = svd(H0);
-O = R*sqrtm(Sigma)      % observable matrix
-C = sqrtm(Sigma)*S'     % controllable matrix
-A_bar = Sigma^-0.5*R'*H1*S*Sigma^-0.5
-C_hat = O(1:2, 1:4);
-B_hat = C(1:4, 1:2);
-A_hat = A_bar(1:4, 1:4);
+P = R*sqrtm(Sigma)      % observable matrix
+Q = sqrtm(Sigma)*S'     % controllable matrix
+A_bar = Sigma^-0.5*R'*H1*S*Sigma^-0.5;
+C_hat = P(1:2, 1:4)
+B_hat = Q(1:4, 1:2)
+A_hat = A_bar(1:4, 1:4)
 D = [0 0;0 0];
-sysd = ss(A_hat, B_hat, C_hat, D);
-impulse(sysd);
+sys_EVD = ss(A_hat, B_hat, C_hat, D, 0.0000000001);
+impulse(sys_EVD);
+T_svd = tf(sys_EVD);
 
-H5 = [1 1 2 3 5;1 2 3 5 8;2 3 5 8 13;3 5 8 13 21;5 8 13 21 34];
-[a, b, c] = svd(H5);
-O2 = a*sqrtm(b)
-C2 = sqrtm(b)*c'
-% a_h = sqrtm(b^-1)*a'*H5*c*sqrt(b^-1)
+T_original
+T_svd
+
+pole_original = pole(T_original);
+pole_EVD = pole(T_svd);
+figure();
+plot(pole_original, 'b*');
+hold on;grid on;
+plot(pole_EVD, 'ro');
+legend('original', 'EVD');
+
+
+
+
 
 
 
